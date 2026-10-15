@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10.0)
 project(serverwatch VERSION 0.1.0 LANGUAGES C CXX)
 
 add_executable(serverwatch main.cpp
+    CpuMonitor.cpp
     CpuMonitor.h)
 
 install(TARGETS serverwatch RUNTIME DESTINATION bin)

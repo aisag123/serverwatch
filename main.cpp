@@ -1,5 +1,8 @@
 #include <iostream>
+#include "CpuMonitor.h"
 
-int main(int, char**){
-    std::cout << "Hello, from serverwatch!\n";
+int main()
+{
+    CpuMonitor cpu;
+    cpu.getCpuUsage();
 }
