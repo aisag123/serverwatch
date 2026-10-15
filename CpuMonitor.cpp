@@ -3,57 +3,54 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
-void CpuMonitor::getCpuUsage()
+void CpuMonitor::pollCpu()
 {
-    std::ifstream f("/proc/stat");
-    if (!f.is_open())
+    CpuStats first = getCpuStats();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    CpuStats second = getCpuStats();
+
+    long long total1 =
+        first.user + first.nice + first.system +
+        first.idle + first.iowait + first.irq +
+        first.softirq + first.steal;
+
+    long long total2 =
+        second.user + second.nice + second.system +
+        second.idle + second.iowait + second.irq +
+        second.softirq + second.steal;
+
+    long long idle1 = first.idle + first.iowait;
+    long long idle2 = second.idle + second.iowait;
+
+    long long totalDelta = total2 - total1;
+    long long idleDelta = idle2 - idle1;
+
+    double usage = 0.0;
+
+    if (totalDelta > 0)
     {
-        std::cerr << "Failed to open /proc/stat" << std::endl;
-        return;
+        usage = 100.0 * (totalDelta - idleDelta) / totalDelta;
     }
 
-    std::string line;
+    std::cout << "CPU usage: " << usage << "%\n";
+}
 
-    if (!std::getline(f, line))
-    {
-        std::cerr << "Failed to read CPU statistics" << std::endl;
-        return;
-    }
+CpuStats CpuMonitor::getCpuStats()
+{
+    std::ifstream file("/proc/stat");
 
     std::string label;
-    long long user, nice, system, idle, iowait;
-    long long irq, softirq, steal, guest, guest_nice;
+    CpuStats stats{};
 
-    std::istringstream stream(line);
-
-    stream >> label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
-
-    std::cout << "CPU label: " << label << '\n';
-    std::cout << "User: " << user << '\n';
-    std::cout << "Nice: " << nice << '\n';
-    std::cout << "System: " << system << '\n';
-    std::cout << "Idle: " << idle << '\n';
-    std::cout << "I/O Wait: " << iowait << '\n';
-    std::cout << "IRQ: " << irq << '\n';
-    std::cout << "SoftIRQ: " << softirq << '\n';
-    std::cout << "Steal: " << steal << '\n';
-    std::cout << "Guest: " << guest << '\n';
-    std::cout << "Guest Nice: " << guest_nice << '\n';
-
-    long long total;
-    long long idle_total;
-    double usage;
-
-    total = user + nice + system + idle + iowait + irq + softirq + steal;
-    idle_total = idle + iowait;
-
-    if (idle_total == 0)
+    if (file.is_open())
     {
-        std::cerr << "idle total cant be 0!" << std::endl;
-        return;
+        file >> label >> stats.user >> stats.nice >> stats.system >> stats.idle >> stats.iowait >> stats.irq >> stats.softirq >> stats.steal;
     }
 
-    usage = 100.0 * (total - idle_total) / total;
-    std::cout << "total cpu usage: " << usage << '\n';
+    return stats;
 }
